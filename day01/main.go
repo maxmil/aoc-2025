@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
-	"maxmil/aoc2025/utils"
+	"maxmil/aoc2025/util"
 	"strconv"
 )
 
 func main() {
-	lines := utils.ReadLines("input.txt")
+	lines := util.ReadLines("input.txt")
 	position := 50
 	zeros := 0
 	passes := 0
