@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -12,63 +11,30 @@ type Point struct {
 }
 
 func main() {
-	// t := part1("input-test.txt")
-	// if t != 13 {
-	// 	log.Fatalf("Failed part 1 test %d != 13", t)
-	// }
-
-	t2 := part2("input-test.txt")
-	if t2 != 43 {
-		log.Fatalf("Failed part 2 test %d != 42", t2)
-	}
-	// fmt.Println("part 1", part1("input.txt"))
+	fmt.Println("part 1", part1("input.txt"))
 	fmt.Println("part 2", part2("input.txt"))
 }
 
 func part1(filename string) int {
-	rolls := make(map[Point]struct{})
-
-	file, _ := os.Open(filename)
-	scanner := bufio.NewScanner(file)
-
-	y := 0
-	for scanner.Scan() {
-		for x, ch := range scanner.Text() {
-			if ch == '@' {
-				rolls[Point{x, y}] = struct{}{}
-			}
-		}
-		y++
-	}
-
-	accessible := []Point{}
-	for p := range rolls {
-		adj := []Point{}
-		for y := p.Y - 1; y <= p.Y+1; y++ {
-			for x := p.X - 1; x <= p.X+1; x++ {
-				if x != p.X || y != p.Y {
-					if _, isRoll := rolls[Point{x, y}]; isRoll {
-						adj = append(adj, Point{x, y})
-					}
-				}
-			}
-		}
-		// fmt.Println(p, rolls)
-		if len(adj) < 4 {
-			accessible = append(accessible, p)
-			fmt.Println(p, adj)
-		}
-	}
-
-	return len(accessible)
+	rolls := parseInput(filename)
+	_, removed := removeRolls(rolls)
+	return len(removed)
 }
 
 func part2(filename string) int {
-	rolls := make(map[Point]struct{})
+	rolls := parseInput(filename)
+	count := 0
+	for rolls, removed := removeRolls(rolls); len(removed) != 0; rolls, removed = removeRolls(rolls) {
+		count += len(removed)
+	}
 
+	return count
+}
+
+func parseInput(filename string) map[Point]struct{} {
+	rolls := make(map[Point]struct{})
 	file, _ := os.Open(filename)
 	scanner := bufio.NewScanner(file)
-
 	y := 0
 	for scanner.Scan() {
 		for x, ch := range scanner.Text() {
@@ -78,56 +44,42 @@ func part2(filename string) int {
 		}
 		y++
 	}
-
-	removed := 0
-	for r := removeRolls(rolls); r != 0; r = removeRolls(rolls) {
-		removed += r
-		fmt.Printf("Removed %d rolls\n", r)
-		printGrid(rolls, 10, 10)
-		fmt.Println()
-	}
-
-	return removed
+	return rolls
 }
 
-func removeRolls(rolls map[Point]struct{}) int {
-	removed := 0
+func removeRolls(rolls map[Point]struct{}) (remaining map[Point]struct{}, removed map[Point]struct{}) {
+	remaining = make(map[Point]struct{})
+	removed = make(map[Point]struct{})
+
 	for p := range rolls {
-		if _, present := rolls[p]; !present {
-			continue
+		count := 0
+		for _, n := range p.adjacentRolls(rolls) {
+			if _, exists := rolls[n]; exists {
+				count++
+			}
 		}
 
-		adj := []Point{}
-		for y := p.Y - 1; y <= p.Y+1; y++ {
-			for x := p.X - 1; x <= p.X+1; x++ {
-				if x != p.X || y != p.Y {
-					if _, isRoll := rolls[Point{x, y}]; isRoll {
-						adj = append(adj, Point{x, y})
-					}
+		if count < 4 {
+			removed[p] = struct{}{}
+		} else {
+			remaining[p] = struct{}{}
+		}
+	}
+
+	return
+}
+
+func (p Point) adjacentRolls(rolls map[Point]struct{}) []Point {
+	adj := make([]Point, 0, 8)
+	for dy := -1; dy <= 1; dy++ {
+		for dx := -1; dx <= 1; dx++ {
+			if dx != 0 || dy != 0 {
+				p := Point{p.X + dx, p.Y + dy}
+				if _, exists := rolls[p]; exists {
+					adj = append(adj, p)
 				}
 			}
 		}
-		// fmt.Println(p, rolls)
-		if len(adj) < 4 {
-			delete(rolls, p)
-			removed++
-		}
 	}
-
-	return removed
+	return adj
 }
-
-func printGrid(rolls map[Point]struct{}, width, height int) {
-      for y := 0; y < height; y++ {
-          for x := 0; x < width; x++ {
-              if _, exists := rolls[Point{x, y}]; exists {
-                  fmt.Print("@")
-              } else {
-                  fmt.Print(".")
-              }
-          }
-          fmt.Println()
-      }
-  }
-
-// 8436 too low
