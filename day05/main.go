@@ -9,21 +9,12 @@ import (
 )
 
 func main() {
-	// if part1("input-test.txt") != 3 {
-	// 	panic("part 1 test failed")
-	// }
-	// fmt.Println("part 1", part1("input.txt"))
-
-	t2 := part2("input-test.txt")
-	if t2 != 14 {
-		panic("part 2 test failed " + strconv.Itoa(t2))
-	}
+	fmt.Println("part 1", part1("input.txt"))
 	fmt.Println("part 2", part2("input.txt"))
 }
 
 func part1(filename string) int {
 	ranges, ingredients := parseInput(filename)
-	fmt.Println(ranges, ingredients)
 	count := 0
 	for _, ingredient := range ingredients {
 		for _, r := range ranges {
@@ -41,17 +32,16 @@ func part2(filename string) int {
 	sort.Slice(ranges, func(i, j int) bool {
 		return ranges[i].Start < ranges[j].Start
 	})
-	merged := []Range{}
-	curr := ranges[0]
+
+	merged := []Range{ranges[0]}
 	for _, r := range ranges[1:] {
-		if curr.End < r.Start {
-			merged = append(merged, curr)
-			curr = r
+		last := &merged[len(merged)-1]
+		if last.End < r.Start {
+			merged = append(merged, r)
 		} else {
-			curr.End = max(curr.End, r.End)
+			last.End = max(last.End, r.End)
 		}
 	}
-	merged = append(merged, curr)
 
 	count := 0
 	for _, r := range merged {
