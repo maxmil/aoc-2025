@@ -2,114 +2,92 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
 )
 
 func main() {
-	// t1 := part1("input-test.txt")
-	// if t1 != 4277556 {
-	// 	log.Fatalf("Failed part 1 test %d != ", t1)
-	// }
-	// fmt.Println("part 1", part1("input.txt"))
-
-	t2 := part2("input-test.txt")
-	if t2 != 3263827 {
-		log.Fatalf("Failed part 2 test %d != 3263827", t2)
-	}
-	fmt.Println("part 1", part2("input.txt"))
+	fmt.Println("part 1", part1("input.txt"))
+	fmt.Println("part 2", part2("input.txt"))
 }
 
 func part1(filename string) int {
-	contents, _ := os.ReadFile(filename)
-	worksheet := [][]string{}
-	for _, line := range strings.Split(string(contents), "\n") {
-		worksheet = append(worksheet, strings.Fields(line))
-	}
-
+	ws := parseInput(filename, strings.Fields)
 	total := 0
-	for col := 0; col < len(worksheet[0]); col++ {
-		values := []int{}
-		for row := 0; row < len(worksheet)-1; row++ {
-			val, _ := strconv.Atoi(worksheet[row][col])
-			values = append(values, val)
+
+	for col := range ws[0] {
+		values := make([]int, len(ws)-1)
+		for row := range values {
+			values[row], _ = strconv.Atoi(ws[row][col])
 		}
 
-		var result int
-		if worksheet[len(worksheet)-1][col] == "*" {
-			result = 1
-			for _, v := range values {
-				result = result * v
-			}
+		if ws[len(ws)-1][col] == "*" {
+			total += mult(values)
 		} else {
-			result = 0
-			for _, v := range values {
-				result = result + v
-			}
+			total += sum(values)
 		}
-		fmt.Printf("Column %d result: %d\n", col+1, result)
-		total += result
 	}
-
 	return total
 }
 
 func part2(filename string) int {
-	contents, _ := os.ReadFile(filename)
-	worksheet := [][]string{}
-	for _, line := range strings.Split(string(contents), "\n") {
-		worksheet = append(worksheet, strings.Split(line, ""))
-	}
+	ws := parseInput(filename, func(s string) []string { return strings.Split(s, "") })
+	total, values := 0, []int{}
+	var op func([]int) int
 
-	total := 0
-	var calculate func([]int) int
-	values := []int{}
-	for col := 0; col < len(worksheet[0]); col++ {
+	for col := range ws[0] {
+		switch ws[len(ws)-1][col] {
+		case "*":
+			op = mult
+		case "+":
+			op = sum
+		}
+
 		value := ""
-		for row := 0; row < len(worksheet)-1; row++ {
-			if worksheet[row][col] != " " {
-				value += worksheet[row][col]
+		for row := 0; row < len(ws)-1; row++ {
+			if ws[row][col] != " " {
+				value += ws[row][col]
 			}
 		}
 
-		if len(value) > 0 {
-			i, _ := strconv.Atoi(value)
-			values = append(values, i)
-		} else {
-			result := calculate(values)
+		if value != "" {
+			v, _ := strconv.Atoi(value)
+			values = append(values, v)
+		}
+
+		if value == "" || col == len(ws[0])-1 {
+			total += op(values)
 			values = []int{}
-			total += result
-			fmt.Printf("Column %d result: %d values: %v\n", col+1, result, values)
-		}
-
-		if worksheet[len(worksheet)-1][col] == "*" {
-			calculate = func(values []int) int {
-				result := 1
-				for _, v := range values {
-					if v != 0 {
-						result *= v
-					}
-					// log.Println(v, result)
-				}
-				return result
-			}
-		} else if worksheet[len(worksheet)-1][col] == "+" {
-			calculate = func(values []int) int {
-				result := 0
-				for _, v := range values {
-					result += v
-				}
-				return result
-			}
 		}
 	}
-
-	result := calculate(values)
-	values = []int{}
-	total += result
-	// fmt.Printf("Column %d result: %d values: %v\n", col+1, result, values)
-
 	return total
+}
+
+func parseInput(filename string, splitter func(string) []string) [][]string {
+	data, _ := os.ReadFile(filename)
+	lines := strings.Split(string(data), "\n")
+	worksheet := make([][]string, len(lines))
+	for i, line := range lines {
+		worksheet[i] = splitter(line)
+	}
+	return worksheet
+}
+
+func mult(values []int) int {
+	result := 1
+	for _, v := range values {
+		if v != 0 {
+			result *= v
+		}
+	}
+	return result
+}
+
+func sum(values []int) int {
+	result := 0
+	for _, v := range values {
+		result += v
+	}
+	return result
 }
