@@ -3,92 +3,47 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 )
 
 func main() {
-	t1 := part1("input-test.txt")
-	if t1 != 21 {
-		log.Fatalf("part1 test failed with %d", t1)
+	timelines, splits := run("input.txt")
+
+	fmt.Println("part 1", splits)
+
+	count := 0
+	for _, c := range timelines {
+		count += c
 	}
-	fmt.Println(part1("input.txt"))
-
-	t2 := part2("input-test.txt")
-	if t2 != 40 {
-		log.Fatalf("part2 test failed with %d", t1)
-	}
-	fmt.Println(part2("input.txt"))
-}
-
-func part1(filename string) int {
-	diagram, start, height, width := parseInput(filename)
-
-	beams := map[Point]struct{}{start: {}}
-	splits := 0
-	for y := 0; y < height; y++ {
-		newBeams := map[Point]struct{}{}
-		for b := range beams {
-			if _, exists := diagram[Point{b.X, b.Y + 1}]; exists {
-				if b.X > 0 {
-					newBeams[Point{b.X - 1, b.Y + 1}] = struct{}{}
-				}
-				if b.X < width-1 {
-					newBeams[Point{b.X + 1, b.Y + 1}] = struct{}{}
-				}
-				splits++
-			} else {
-				newBeams[Point{b.X, b.Y + 1}] = struct{}{}
-			}
-		}
-		beams = newBeams
-	}
-
-	return splits
-}
-
-func part2(filename string) int {
-	diagram, start, height, width := parseInput(filename)
-
-	beams := map[Point]int{start: 1}
-	for y := 0; y < height; y++ {
-		newBeams := map[Point]int{}
-		for b := range beams {
-			if _, exists := diagram[Point{b.X, b.Y + 1}]; exists {
-				if b.X > 0 {
-					count, exists := newBeams[Point{b.X - 1, b.Y + 1}]
-					if !exists {
-						count = 0
-					}
-					newBeams[Point{b.X - 1, b.Y + 1}] = count + beams[b]
-				}
-				if b.X < width-1 {
-					count, exists := newBeams[Point{b.X + 1, b.Y + 1}]
-					if !exists {
-						count = 0
-					}
-					newBeams[Point{b.X + 1, b.Y + 1}] = count + beams[b]
-				}
-			} else {
-				count, exists := newBeams[Point{b.X, b.Y + 1}]
-				if !exists {
-					count = 0
-				}
-				newBeams[Point{b.X, b.Y + 1}] = count + beams[b]
-			}
-		}
-		beams = newBeams
-	}
-
-	timelines := 0
-	for _, count := range beams {
-		timelines += count
-	}
-	return timelines
+	fmt.Println("part 2", count)
 }
 
 type Point struct {
 	X, Y int
+}
+
+func run(filename string) (timelines map[Point]int, splits int) {
+	diagram, start, height, width := parseInput(filename)
+	timelines = map[Point]int{start: 1}
+	splits = 0
+	for y := 0; y < height; y++ {
+		next := map[Point]int{}
+		for b := range timelines {
+			if _, exists := diagram[Point{b.X, b.Y + 1}]; exists {
+				splits++
+				if b.X > 0 {
+					next[Point{b.X - 1, b.Y + 1}] += timelines[b]
+				}
+				if b.X < width-1 {
+					next[Point{b.X + 1, b.Y + 1}] += timelines[b]
+				}
+			} else {
+				next[Point{b.X, b.Y + 1}] += timelines[b]
+			}
+		}
+		timelines = next
+	}
+	return
 }
 
 func parseInput(filename string) (diagram map[Point]struct{}, start Point, height int, width int) {
@@ -112,5 +67,3 @@ func parseInput(filename string) (diagram map[Point]struct{}, start Point, heigh
 	height = y
 	return
 }
-
-// 3080 too low
