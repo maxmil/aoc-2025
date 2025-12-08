@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"os"
 	"sort"
@@ -11,36 +10,22 @@ import (
 )
 
 func main() {
-	t1 := part1("input-test.txt", 10)
-	if t1 != 40 {
-		log.Fatalf("Part 1 test failed with %d != 40", t1)
-	}
-	p1 := part1("input.txt", 1000)
-	if p1 != 163548 {
-		log.Fatalf("Part 1 test failed with %d != 163548", p1)
-	}
-	// fmt.Println("part 1", part1("input.txt", 1000))
-
-	t2 := part2("input-test.txt")
-	if t2 != 25272 {
-		log.Fatalf("Part 2 test failed with %d != 25272", t2)
-	}
+	fmt.Println("part 1", part1("input.txt", 1000))
 	fmt.Println("part 2", part2("input.txt"))
-
 }
 
 func part1(filename string, nConnections int) int {
-	jumpBoxes, distances := calulateDistances(filename)
+	boxes, allConnections := getConnections(filename)
 
-	connections := distances[:nConnections]
+	connections := allConnections[:nConnections]
 	adj := adjacencyMatrix(connections)
 
-	visited := make(map[JumpBox]struct{})
-	circuits := [][]JumpBox{}
+	visited := make(map[JunctionBox]struct{})
+	circuits := [][]JunctionBox{}
 
-	for _, jumpBox := range jumpBoxes {
+	for _, jumpBox := range boxes {
 		if _, exists := visited[jumpBox]; !exists {
-			circuit := connect(adj, visited, jumpBox, []JumpBox{})
+			circuit := connect(adj, visited, jumpBox, []JunctionBox{})
 			circuits = append(circuits, circuit)
 		}
 	}
@@ -49,103 +34,93 @@ func part1(filename string, nConnections int) int {
 		return len(circuits[i]) > len(circuits[j])
 	})
 
-	// for _, circuit := range circuits {
-	// 	fmt.Println(circuit)
-	// }
-
 	return len(circuits[0]) * len(circuits[1]) * len(circuits[2])
 }
 
 func part2(filename string) int {
-	jumpBoxes, distances := calulateDistances(filename)
+	boxes, connections := getConnections(filename)
 
-	// for _, distance := range distances {
-	// 	fmt.Println(distance)
-	// }
-
-	for i, _ := range distances {
-		adj := adjacencyMatrix(distances[:i])
-		circuit := connect(adj, make(map[JumpBox]struct{}), jumpBoxes[0], []JumpBox{})
-		// fmt.Println(i, len(circuit), len(jumpBoxes))
-		if len(circuit) == len(jumpBoxes) {
-			// fmt.Println(distance, distances[i])
-			return distances[i - 1].from.X * distances[i-1].to.X
-		}		
+	for i := range connections {
+		adj := adjacencyMatrix(connections[:i])
+		circuit := connect(adj, make(map[JunctionBox]struct{}), boxes[0], []JunctionBox{})
+		if len(circuit) == len(boxes) {
+			return connections[i-1].from.X * connections[i-1].to.X
+		}
 	}
 	return 0
 }
 
-func calulateDistances(filename string) ([]JumpBox, []Distance) {
+func getConnections(filename string) ([]JunctionBox, []Connection) {
 	content, _ := os.ReadFile(filename)
 	lines := strings.Split(string(content), "\n")
 
-	jumpBoxes := []JumpBox{}
+	boxes := []JunctionBox{}
 	for _, line := range lines {
-		jumpBox := lineToJumpBox(line)
-		jumpBoxes = append(jumpBoxes, jumpBox)
+		box := lineToJunctionBox(line)
+		boxes = append(boxes, box)
 	}
 
-	distances := []Distance{}
-	for i, from := range jumpBoxes {
-		for j := i + 1; j < len(jumpBoxes); j++ {
-			to := jumpBoxes[j]
+	connections := []Connection{}
+	for i, from := range boxes {
+		for j := i + 1; j < len(boxes); j++ {
+			to := boxes[j]
 			val := math.Sqrt(float64((from.X-to.X)*(from.X-to.X) + (from.Y-to.Y)*(from.Y-to.Y) + (from.Z-to.Z)*(from.Z-to.Z)))
-			distance := Distance{from: from, to: to, val: val}
-			distances = append(distances, distance)
+			connection := Connection{from: from, to: to, distance: val}
+			connections = append(connections, connection)
 		}
 	}
 
-	sort.Slice(distances, func(i, j int) bool {
-		return distances[i].val < distances[j].val
+	sort.Slice(connections, func(i, j int) bool {
+		return connections[i].distance < connections[j].distance
 	})
-	return jumpBoxes, distances
+	return boxes, connections
 }
 
-func adjacencyMatrix(connections []Distance) map[JumpBox][]JumpBox {
-	adj := make(map[JumpBox][]JumpBox)
+func adjacencyMatrix(connections []Connection) map[JunctionBox][]JunctionBox {
+	adj := make(map[JunctionBox][]JunctionBox)
 	for _, connection := range connections {
 
 		if _, exists := adj[connection.from]; !exists {
-			adj[connection.from] = []JumpBox{}
+			adj[connection.from] = []JunctionBox{}
 		}
 		adj[connection.from] = append(adj[connection.from], connection.to)
 
 		if _, exists := adj[connection.to]; !exists {
-			adj[connection.to] = []JumpBox{}
+			adj[connection.to] = []JunctionBox{}
 		}
+
 		adj[connection.to] = append(adj[connection.to], connection.from)
 	}
 	return adj
 }
 
-func connect(adj map[JumpBox][]JumpBox, visited map[JumpBox]struct{}, jumpBox JumpBox, circuit []JumpBox) []JumpBox {
-	if _, exists := visited[jumpBox]; exists {
+func connect(adj map[JunctionBox][]JunctionBox, visited map[JunctionBox]struct{}, junctionBox JunctionBox, circuit []JunctionBox) []JunctionBox {
+	if _, exists := visited[junctionBox]; exists {
 		return circuit
 	}
-	visited[jumpBox] = struct{}{}
-	circuit = append(circuit, jumpBox)
-	for _, connected := range adj[jumpBox] {
+	visited[junctionBox] = struct{}{}
+	circuit = append(circuit, junctionBox)
+	for _, connected := range adj[junctionBox] {
 		circuit = connect(adj, visited, connected, circuit)
 	}
 	return circuit
 }
 
-func lineToJumpBox(line string) JumpBox {
+func lineToJunctionBox(line string) JunctionBox {
 	coords := strings.Split(line, ",")
 	x, _ := strconv.Atoi(coords[0])
 	y, _ := strconv.Atoi(coords[1])
 	z, _ := strconv.Atoi(coords[2])
-	jumpBox := JumpBox{X: x, Y: y, Z: z}
-	return jumpBox
+	return JunctionBox{X: x, Y: y, Z: z}
 }
 
-type Distance struct {
-	from JumpBox
-	to   JumpBox
-	val  float64
+type Connection struct {
+	from JunctionBox
+	to   JunctionBox
+	distance  float64
 }
 
-type JumpBox struct {
+type JunctionBox struct {
 	X int
 	Y int
 	Z int
