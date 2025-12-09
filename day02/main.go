@@ -7,10 +7,10 @@ import (
 )
 
 func main() {
-	util.Run(part1, "input-test.txt", 1227775554)
-	util.Run(part1, "input.txt", 12586854255)
-	util.Run(part2, "input-test.txt", 4174379265)
-	util.Run(part2, "input.txt", 17298174201)
+	util.RunAndCheck(part1, "input-test.txt", 1227775554)
+	util.RunAndCheck(part1, "input.txt", 12586854255)
+	util.RunAndCheck(part2, "input-test.txt", 4174379265)
+	util.RunAndCheck(part2, "input.txt", 17298174201)
 }
 
 func part1(filename string) int {
