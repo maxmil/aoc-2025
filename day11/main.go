@@ -7,47 +7,30 @@ import (
 )
 
 func main() {
-	// util.RunAndCheck(part1, "input-test-part1.txt",5)
-	// util.Run(part1, "input.txt")
+	util.RunAndCheck(part1, "input-test-part1.txt", 5)
+	util.Run(part1, "input.txt")
 	util.RunAndCheck(part2, "input-test-part2.txt", 2)
 	util.Run(part2, "input.txt")
 }
 
 func part1(filename string) int {
-	devices := parseInput(filename)
-
-	// start with you
-	// countPaths - keep track of seen devices and devices that lead to out
-		// if device leads to out, increment
-		// if seen then stop
-		// if device is out, increment and add
-		// else recurse and add to paths
-		// add to solutions if it's a solution
-
-
-	found := make(map[string]int)
-	paths := countPaths(devices, "you", make(map[string]struct{}), found)
-	return paths
+	return countPaths( parseInput(filename), Path{Start: "you"}, make(map[Path]struct{}), make(map[Path]int), false)
 }
 
 func part2(filename string) int {
-	devices := parseInput(filename)
-	found := make(map[Path]int)
-	start := Path{"svr", false, false}
-	paths := countPaths2(devices, start, make(map[Path]struct{}), found)
-	return paths
+	return countPaths( parseInput(filename), Path{Start: "svr"}, make(map[Path]struct{}), make(map[Path]int), true)
 }
 
-func countPaths2(devices map[string][]string, path Path, seen map[Path]struct{}, found map[Path]int) int {
+func countPaths(devices map[string][]string, path Path, seen map[Path]struct{}, found map[Path]int, part2 bool) int {
 	if paths, exists := found[path]; exists {
 		return paths
 	} else if _, exists := seen[path]; exists {
 		return 0
 	} else if path.Start == "out" {
-		if (path.Dac && path.Fft) {
-			return 1
-		} else {
+		if part2 && (!path.Dac || !path.Fft) {
 			return 0
+		} else {
+			return 1
 		}
 	}
 	seen[path] = struct{}{}
@@ -55,36 +38,9 @@ func countPaths2(devices map[string][]string, path Path, seen map[Path]struct{},
 	paths := 0
 	for _, d := range devices[path.Start] {
 		next := Path{d, path.Dac || d == "dac", path.Fft || d == "fft"}
-		p := countPaths2(devices, next, seen, found)
-		if (p > 0) {
+		p := countPaths(devices, next, seen, found, part2)
+		if p > 0 {
 			found[next] = p
-		}
-		paths += p
-	}
-	return paths
-}
-
-type Path struct {
-	Start string
-	Dac bool
-	Fft bool
-}
-
-func countPaths(devices map[string][]string, start string, seen map[string]struct{}, found map[string]int) int {
-	if paths, exists := found[start]; exists {
-		return paths
-	} else if _, exists := seen[start]; exists {
-		return 0
-	} else if start == "out" {
-		return 1
-	}
-	seen[start] = struct{}{}
-
-	paths := 0
-	for _, d := range devices[start] {
-		p := countPaths(devices, d, seen, found)
-		if (p > 0) {
-			found[d] = p
 		}
 		paths += p
 	}
@@ -102,4 +58,10 @@ func parseInput(filename string) map[string][]string {
 	}
 
 	return devices
+}
+
+type Path struct {
+	Start string
+	Dac   bool
+	Fft   bool
 }
